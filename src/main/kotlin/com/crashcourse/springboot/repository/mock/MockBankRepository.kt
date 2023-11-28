@@ -4,7 +4,7 @@ import com.crashcourse.springboot.model.Bank
 import com.crashcourse.springboot.repository.BankRepository
 import org.springframework.stereotype.Repository
 
-@Repository
+@Repository("mock")
 class MockBankRepository : BankRepository {
     val banks = mutableListOf(
         Bank("1234", 3.14, 17),
@@ -31,5 +31,11 @@ class MockBankRepository : BankRepository {
         banks.remove(currentBank)
         banks.add(bank)
         return bank
+    }
+
+    override fun deleteBank(accountNumber: String) {
+        val currentBank = banks.firstOrNull() { it.accountNumber == accountNumber }
+            ?: throw NoSuchElementException("Could not find a bank with account number $accountNumber")
+        banks.remove(currentBank)
     }
 }

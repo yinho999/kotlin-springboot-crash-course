@@ -12,11 +12,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.patch
-import org.springframework.test.web.servlet.post
-
+import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.web.servlet.*
+/*
+FIRST Principles of Unit Testing
+F - Fast - should run quickly
+I - Isolated/Independent - should not depend on other tests
+R - Repeatable - should be able to run the test multiple times and get the same result
+S - Self-validating - should be able to determine if the test passed or failed without human intervention
+T - Timely - should be written at the same time (even before) as the production code
+ */
 // @SpringBootTest will initialize the entire Spring application context for the test, expensive
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -43,7 +48,7 @@ internal class BankControllerTest(
                 status { isOk() }
                 content { contentType(MediaType.APPLICATION_JSON) }
                 // first element in the array has accountNumber 1234
-                jsonPath("$[0].accountNumber") { value("1234") }
+                jsonPath("$[0].account_number") { value("1234") }
             }
         }
     }
@@ -63,7 +68,7 @@ internal class BankControllerTest(
                 content { contentType(MediaType.APPLICATION_JSON) }
                 // first element in the array has accountNumber 1234
                 jsonPath("$.trust") { value("3.14") }
-                jsonPath("$.transactionFee") { value("17") }
+                jsonPath("$.default_transaction_fee") { value("17") }
             }
 
         }
@@ -198,7 +203,42 @@ internal class BankControllerTest(
             }
 
         }
+    }
 
+    @Nested
+    @DisplayName("DELETE /api/banks/{accountNumber}")
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    inner class DeleteExistingBank {
+        @Test
+        // Reset Spring Boot application context after each test
+        @DirtiesContext
+        fun `should delete the bank with the given account number`() {
+            // arrange
+            val accountNumber = 1234
+
+            // act / assert
+            mockMvc.delete("$baseUrl/$accountNumber").andDo { print() }.andExpect {
+                status { isNoContent() }
+            }
+
+            // assert that the bank was deleted from the repository
+            mockMvc.get("$baseUrl/$accountNumber").andExpect {
+                status { isNotFound() }
+            }
+
+        }
+
+        @Test
+        fun `should return NOT FOUND if the account number does not exist`() {
+            // arrange
+            val accountNumber = "does_not_exist"
+
+            // act / assert
+            mockMvc.delete("$baseUrl/$accountNumber").andDo { print() }.andExpect {
+                status { isNotFound() }
+            }
+
+        }
     }
 
 
